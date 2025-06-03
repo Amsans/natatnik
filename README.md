@@ -15,6 +15,7 @@ A lightweight text editor with basic formatting support for Windows.
 To build the executable, you need:
 - Python 3.6 or higher
 - cx_Freeze package (`pip install cx_Freeze`)
+- cx_Freeze package (`pip install textwrap`)
 
 ## Building the Executable
 
@@ -30,17 +31,3 @@ To build the executable, you need:
 - Double-click on `Natatnik.exe` in the build directory
 - Alternatively, you can run the Python script directly: `python main.py`
 
-### Font Size Adjustment
-
-Use the font size slider in the toolbar to adjust the text size (from 10 to 80 points)
-
-### Working with Files
-
-- Create a new tab: File > New
-- Open an existing file: File > Open
-- Save the current file: File > Save
-- Save the current file with a new name: File > Save As
-
-## License
-
-This project is open source and available under the MIT License.

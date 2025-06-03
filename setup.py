@@ -5,7 +5,7 @@ from cx_Freeze import setup, Executable
 build_exe_options = {
     "packages": ["os", "tkinter", "json", "textwrap"],
     "excludes": [],
-    "include_files": ["icon.ico"]
+    "include_files": []
 }
 
 # GUI applications require a different base on Windows
