@@ -12,6 +12,7 @@ class TextEditor:
         self.font_size_display = None
         self.font_size_var = None
         self.untitled_counter = None
+        self.open_tabs = None
         self.fixed_tab_index = 1
         self.root = root
         self.root.title("Natatnik")
@@ -96,8 +97,6 @@ class TextEditor:
         self.style.configure('TButton', background=bg_color, foreground=fg_color, font=("Arial", 15))
         self.style.configure('TLabel', background=bg_color, foreground=fg_color)
 
-        # Text widget colors will be set when creating each tab
-
     def create_menu(self):
         menubar = tk.Menu(self.root, bg="#000000", fg="#e0e0e0", activebackground="#000000", activeforeground="#e0e0e0")
         self.root.config(menu=menubar)
@@ -162,7 +161,6 @@ class TextEditor:
         close_button = ttk.Button(toolbar, text="Закрыць", command=lambda: self.close_tab(tab_id))
         close_button.pack(side="right")
 
-        # Rest of the method...
         text_frame = ttk.Frame(content_frame)
         text_frame.pack(fill="both", expand=True)
         scrollbar = ttk.Scrollbar(text_frame)
@@ -216,7 +214,7 @@ class TextEditor:
 
         text_font = tkfont.Font(font=text_widget['font'])
         widget_width_px = text_widget.winfo_width()
-        avg_char_width = text_font.measure("n")  # You can use " " or "n" as a good estimate
+        avg_char_width = text_font.measure("n")  # Use "n" as a good estimate
         chars_per_line = max(widget_width_px // avg_char_width, 1)
         full_text = text_widget.get("1.0", "end-1c")
         # Split into logical lines
@@ -272,7 +270,7 @@ class TextEditor:
             return self.save_file_as()
 
         try:
-            content = tab_info["text_widget"].get(1.0, tk.END)
+            content = tab_info["text_widget"].get("1.0", "end-1c")
             with open(filename, "w") as file:
                 file.write(content)
             return True
@@ -351,22 +349,35 @@ class TextEditor:
                     settings = json.load(f)
                     self.default_font_size = settings.get('font_size', self.default_font_size)
                     self.untitled_counter = settings.get('untitled_counter', 1)
+                    self.open_tabs = settings.get('open_tabs', [])  # Load open tabs
         except Exception as e:
             print(f"Error loading settings: {e}")
+            self.open_tabs = []
 
     def save_settings(self):
-        # Save settings to file
+        # Save settings to file, including open tabs
         try:
+            # Get current open tabs in order
+            open_tabs = []
+            for i in range(self.notebook.index("end") - 1):  # Exclude the fixed "+" tab
+                tab_id = None
+                for tid, tab_info in self.tabs.items():
+                    if self.notebook.index(tab_info["frame"]) == i:
+                        tab_id = tid
+                        break
+                if tab_id is not None:
+                    open_tabs.append(self.tabs[tab_id]["filename"])
+
             settings = {
                 'font_size': self.default_font_size,
-                'untitled_counter': self.untitled_counter
+                'untitled_counter': self.untitled_counter,
+                'open_tabs': open_tabs
             }
             with open(self.settings_file, 'w') as f:
-                json.dump(settings, f)
+                json.dump(settings, f, indent=2)
         except Exception as e:
             print(f"Error saving settings: {e}")
 
-    # noinspection PyTypeChecker
     def setup_autosave(self):
         # Set up autosave to run every 30 seconds
         self.autosave()
@@ -375,6 +386,7 @@ class TextEditor:
 
     def on_closing(self):
         self.autosave()
+        self.save_settings()  # Save tab information on close
         self.root.destroy()
 
     def autosave(self):
@@ -386,7 +398,7 @@ class TextEditor:
         tab_info = self.tabs[tab_id]
         filename = tab_info["filename"]
 
-        # Get content
+        # Get content without trailing newline
         content = tab_info["text_widget"].get("1.0", "end-1c")
 
         # Save to file
@@ -397,34 +409,40 @@ class TextEditor:
             print(f"Error autosaving tab {tab_id}: {e}")
 
     def load_tabs(self):
-        # Load tabs from autosave directory
+        # Load tabs from settings.json
         try:
+            # Load open tabs from settings
+            for filename in self.open_tabs:
+                if os.path.exists(filename):
+                    try:
+                        with open(filename, 'r') as f:
+                            content = f.read()
+                        self.create_new_tab(filename, content)
+                    except Exception as e:
+                        print(f"Error loading tab {filename}: {e}")
+
+            # Load autosave files not in open_tabs (for backward compatibility)
             autosave_files = [f for f in os.listdir(self.autosave_dir) if f.endswith('.txt')]
+            for filename in autosave_files:
+                full_path = os.path.join(self.autosave_dir, filename)
+                if full_path not in self.open_tabs:
+                    try:
+                        with open(full_path, 'r') as f:
+                            content = f.read()
+                        self.create_new_tab(full_path, content)
+                    except Exception as e:
+                        print(f"Error loading tab {filename}: {e}")
 
-            # Sort files to maintain order
-            autosave_files.sort()
-
-            # Extract the highest untitled number to set the counter
+            # Update untitled_counter based on autosave files
             highest_num = 0
             for filename in autosave_files:
                 if filename.startswith('Новы'):
                     try:
-                        num = int(filename[4:-4])  # Extract number from "Untitled{num}.txt"
+                        num = int(filename[4:-4])  # Extract number from "Новы{num}.txt"
                         highest_num = max(highest_num, num)
                     except ValueError:
                         pass
-
-            self.untitled_counter = highest_num + 1
-
-            # Load each file
-            for filename in autosave_files:
-                full_path = os.path.join(self.autosave_dir, filename)
-                try:
-                    with open(full_path, 'r') as f:
-                        content = f.read()
-                    self.create_new_tab(full_path, content)
-                except Exception as e:
-                    print(f"Error loading tab {filename}: {e}")
+            self.untitled_counter = max(self.untitled_counter or 1, highest_num + 1)
         except Exception as e:
             print(f"Error loading tabs: {e}")
 
@@ -440,7 +458,7 @@ class TextEditor:
             pass
 
     def update_font_sizes(self):
-        # Update font sizes for all text widgets and tags
+        # Update font sizes for all text widgets
         for tab_id, tab_info in self.tabs.items():
             text_widget = tab_info["text_widget"]
             text_widget.configure(font=("Consolas", self.default_font_size, "bold"))
@@ -460,17 +478,11 @@ class TextEditor:
             if tab_id is not None:
                 # Close the tab
                 self.close_tab(tab_id)
-            # else:
-            #     # Click was in empty space or invalid area, create a new tab
-            #     self.create_new_tab()
         except (ValueError, tk.TclError) as err:
             print(err)
-            # If index() raises an error (empty string or invalid format), create a new tab
-            # self.create_new_tab()
 
     def close_tab(self, tab_id):
         # Check if there are unsaved changes
-        # For simplicity, we're not implementing this check now
         tab_info = self.tabs[tab_id]
         filename = tab_info["filename"]
         if self.autosave_dir in filename:
@@ -485,9 +497,6 @@ class TextEditor:
                     os.remove(filename)
                 except FileNotFoundError:
                     print(f'File {filename} not found.')
-
-        # # Autosave the tab before closing
-        # self.autosave_tab(tab_id)
 
         # Remove the tab
         self.notebook.forget(self.tabs[tab_id]["frame"])
