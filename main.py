@@ -19,7 +19,7 @@ class TextEditor:
         self.root.iconbitmap("icon.ico")
 
         # Default font size
-        self.default_font_size = 28  # Doubled from 14
+        self.default_font_size = 28
 
         # Settings directory and file
         self.settings_dir = os.path.join(os.path.expanduser("~"), ".natatnik")
@@ -90,7 +90,7 @@ class TextEditor:
 
         self.style.configure('TNotebook', background=bg_color)
         self.style.configure('TNotebook.Tab', background=bg_color, foreground=fg_color, padding=[20, 4], font=("Consolas", 28, "bold"))
-        self.style.map('TNotebook.Tab', background=[('selected', "#454545")], foreground=[('selected', fg_color)])
+        self.style.map('TNotebook.Tab', background=[('selected', select_bg)], foreground=[('selected', fg_color)])
 
         self.style.configure('TFrame', background=bg_color)
         self.style.configure('TButton', background=bg_color, foreground=fg_color, font=("Arial", 15))
@@ -145,7 +145,7 @@ class TextEditor:
         self.fixed_tab_index = self.notebook.index("end") - 1  # Always last
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
-    def on_tab_changed(self, event):
+    def on_tab_changed(self, event: tk.Event):
         selected_index = self.notebook.index("current")
         if selected_index == self.fixed_tab_index:
             self.create_new_tab()
@@ -216,12 +216,9 @@ class TextEditor:
 
         text_font = tkfont.Font(font=text_widget['font'])
         widget_width_px = text_widget.winfo_width()
-        # Get average character width (approximation using space character)
         avg_char_width = text_font.measure("n")  # You can use " " or "n" as a good estimate
-        # Characters per line that can fit in widget
         chars_per_line = max(widget_width_px // avg_char_width, 1)
-        # Get all text content
-        full_text = text_widget.get("1.0", "end-1c")  # remove trailing newline
+        full_text = text_widget.get("1.0", "end-1c")
         # Split into logical lines
         logical_lines = full_text.split("\n")
 
@@ -390,7 +387,7 @@ class TextEditor:
         filename = tab_info["filename"]
 
         # Get content
-        content = tab_info["text_widget"].get(1.0, tk.END)
+        content = tab_info["text_widget"].get("1.0", "end-1c")
 
         # Save to file
         try:
@@ -466,7 +463,7 @@ class TextEditor:
             # else:
             #     # Click was in empty space or invalid area, create a new tab
             #     self.create_new_tab()
-        except (ValueError, tk.TclError ) as err:
+        except (ValueError, tk.TclError) as err:
             print(err)
             # If index() raises an error (empty string or invalid format), create a new tab
             # self.create_new_tab()
