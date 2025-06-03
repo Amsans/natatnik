@@ -6,13 +6,13 @@ A lightweight text editor with basic formatting support for Windows.
 
 - Dark mode interface
 - Multiple tabs for editing different files
-- Basic text formatting (bold, italic, underline)
+- Bold text with adjustable font size
 - File operations (new, open, save, save as)
 - Edit operations (cut, copy, paste)
 
 ## Requirements
 
-To build the application from source, you need:
+To build the executable, you need:
 - Python 3.6 or higher
 - cx_Freeze package (`pip install cx_Freeze`)
 
@@ -30,11 +30,9 @@ To build the application from source, you need:
 - Double-click on `Natatnik.exe` in the build directory
 - Alternatively, you can run the Python script directly: `python main.py`
 
-### Text Formatting
+### Font Size Adjustment
 
-1. Select the text you want to format
-2. Click on one of the formatting buttons (B, I, U) in the toolbar
-3. Or use the Format menu to apply formatting
+Use the font size slider in the toolbar to adjust the text size (from 10 to 80 points)
 
 ### Working with Files
 

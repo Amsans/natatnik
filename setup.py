@@ -5,7 +5,7 @@ from cx_Freeze import setup, Executable
 build_exe_options = {
     "packages": ["os", "tkinter"],
     "excludes": [],
-    "include_files": []
+    "include_files": ["icon.ico"]
 }
 
 # GUI applications require a different base on Windows
@@ -18,5 +18,5 @@ setup(
     version="1.0",
     description="Lightweight text editor with basic formatting support",
     options={"build_exe": build_exe_options},
-    executables=[Executable("main.py", base=base, target_name="Natatnik.exe", icon=None)]
+    executables=[Executable("main.py", base=base, target_name="Natatnik.exe", icon="icon.ico")]
 )
