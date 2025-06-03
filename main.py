@@ -271,7 +271,7 @@ class TextEditor:
 
             # Create new tab with file content
             try:
-                with open(filename, "r") as file:
+                with open(filename, "r", encoding="utf-8") as file:
                     content = file.read()
 
                 tab_id = self.create_new_tab(filename)
@@ -294,7 +294,7 @@ class TextEditor:
 
         try:
             content = tab_info["text_widget"].get("1.0", "end-1c")
-            with open(filename, "w") as file:
+            with open(filename, "w", encoding="utf-8") as file:
                 file.write(content)
             return True
         except Exception as e:
@@ -369,7 +369,7 @@ class TextEditor:
         # Load settings from file
         try:
             if os.path.exists(self.settings_file):
-                with open(self.settings_file, 'r') as f:
+                with open(self.settings_file, 'r', encoding="utf-8") as f:
                     settings = json.load(f)
                     self.default_font_size = settings.get('font_size', self.default_font_size)
                     self.untitled_counter = settings.get('untitled_counter', 1)
@@ -400,7 +400,7 @@ class TextEditor:
                 'open_tabs': open_tabs,
                 'selected_tab_index': self.notebook.index("current")
             }
-            with open(self.settings_file, 'w') as f:
+            with open(self.settings_file, 'w', encoding="utf-8") as f:
                 json.dump(settings, f, indent=2)
         except Exception as e:
             print(f"Error saving settings: {e}")
@@ -431,7 +431,7 @@ class TextEditor:
 
         # Save to file
         try:
-            with open(filename, 'w') as f:
+            with open(filename, 'w', encoding="utf-8") as f:
                 f.write(content)
         except Exception as e:
             print(f"Error autosaving tab {tab_id}: {e}")
@@ -444,7 +444,7 @@ class TextEditor:
             for filename in self.open_tabs:
                 if os.path.exists(filename):
                     try:
-                        with open(filename, 'r') as f:
+                        with open(filename, 'r', encoding="utf-8") as f:
                             content = f.read()
                         tab_id = self.create_new_tab(filename, content)
                         tab_ids[filename] = tab_id
@@ -457,7 +457,7 @@ class TextEditor:
                 full_path = os.path.join(self.autosave_dir, filename)
                 if full_path not in self.open_tabs:
                     try:
-                        with open(full_path, 'r') as f:
+                        with open(full_path, 'r', encoding="utf-8") as f:
                             content = f.read()
                         tab_id = self.create_new_tab(full_path, content)
                         tab_ids[full_path] = tab_id

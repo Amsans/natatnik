@@ -3,7 +3,7 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
-    "packages": ["os", "tkinter"],
+    "packages": ["os", "tkinter", "json", "textwrap"],
     "excludes": [],
     "include_files": ["icon.ico"]
 }
