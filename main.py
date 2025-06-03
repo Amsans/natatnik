@@ -12,7 +12,6 @@ class TextEditor:
         self.font_size_display = None
         self.font_size_var = None
         self.untitled_counter = None
-        self.open_tabs = None
         self.fixed_tab_index = 1
         self.root = root
         self.root.title("Natatnik")
@@ -150,11 +149,27 @@ class TextEditor:
             self.create_new_tab()
             if self.tabs:
                 self.notebook.select(len(self.tabs) - 1)
+        else:
+            # Update the file path label for the selected tab
+            tab_id = None
+            for tid, tab_info in self.tabs.items():
+                if self.notebook.index(tab_info["frame"]) == selected_index:
+                    tab_id = tid
+                    break
+            if tab_id is not None:
+                self.current_file = tab_id
+                file_path = self.tabs[tab_id]["filename"]
+                self.tabs[tab_id]["file_path_label"].config(text=file_path)
+            self.count_display_lines()
 
     def create_new_tab(self, filename=None, content=None):
         content_frame = ttk.Frame(self.notebook)
         toolbar = ttk.Frame(content_frame)
         toolbar.pack(side="top", fill="x")
+
+        # Add file path label
+        file_path_label = ttk.Label(toolbar, text=filename or "", font=("Arial", 12))
+        file_path_label.pack(side="left", padx=5, anchor="e")
 
         # Add close button
         tab_id = len(self.tabs)  # Get tab ID before adding to notebook
@@ -186,7 +201,8 @@ class TextEditor:
             "text_widget": text_widget,
             "filename": filename,
             "frame": content_frame,
-            "autosave_filename": filename if not os.path.exists(filename) else None
+            "autosave_filename": filename if not os.path.exists(filename) else None,
+            "file_path_label": file_path_label  # Store reference to the label
         }
         self.tabs[tab_id] = tab_info
         if content:
@@ -195,6 +211,8 @@ class TextEditor:
 
         self.notebook.select(tab_id)
         self.current_file = tab_id
+        # Update file path label for the new tab
+        file_path_label.config(text=filename)
         self.count_display_lines()
 
         # Update fixed tab index since tab list changed
@@ -244,6 +262,7 @@ class TextEditor:
                 if tab_info["filename"] == filename:
                     self.notebook.select(tab_id)
                     self.current_file = tab_id
+                    tab_info["file_path_label"].config(text=filename)
                     return
 
             # Create new tab with file content
@@ -305,9 +324,10 @@ class TextEditor:
         tab_info["filename"] = filename
         tab_info["autosave_filename"] = None  # No longer an autosave file
 
-        # Update tab name
+        # Update tab name and file path label
         tab_index = self.notebook.index(self.notebook.select())
         self.notebook.tab(tab_index, text=os.path.basename(filename))
+        tab_info["file_path_label"].config(text=filename)
 
         return self.save_file()
 
@@ -378,6 +398,7 @@ class TextEditor:
         except Exception as e:
             print(f"Error saving settings: {e}")
 
+    # noinspection PyTypeChecker
     def setup_autosave(self):
         # Set up autosave to run every 30 seconds
         self.autosave()
