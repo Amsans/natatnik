@@ -15,7 +15,7 @@ A lightweight text editor with basic formatting support for Windows.
 To build the executable, you need:
 - Python 3.6 or higher
 - cx_Freeze package (`pip install cx_Freeze`)
-- cx_Freeze package (`pip install textwrap`)
+- textwrap package (`pip install textwrap`)
 
 ## Building the Executable
 
