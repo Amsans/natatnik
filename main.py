@@ -84,12 +84,12 @@ class TextEditor:
         # Configure dark theme colors
         bg_color = "#000000"
         fg_color = "#FFFFFF"
-        select_bg = "#000000"
+        select_bg = "#485456"
 
         self.root.configure(bg=bg_color)
 
         self.style.configure('TNotebook', background=bg_color)
-        self.style.configure('TNotebook.Tab', background=bg_color, foreground=fg_color, padding=[20, 4], font=("Consolas", 28, "bold"))
+        self.style.configure('TNotebook.Tab', background=bg_color, foreground=fg_color, padding=[10, 2], font=("Consolas", 28, "bold"))
         self.style.map('TNotebook.Tab', background=[('selected', select_bg)], foreground=[('selected', fg_color)])
 
         self.style.configure('TFrame', background=bg_color)
