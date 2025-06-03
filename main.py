@@ -1,14 +1,18 @@
 import json
 import os
-import tkinter as tk
 import textwrap
+import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, font as tkfont
+
+LABEL_FONT = ("Arial", 20)
 
 
 class TextEditor:
     def __init__(self, root: tk.Tk):
         self.font_size_display = None
         self.font_size_var = None
+        self.untitled_counter = None
+        self.fixed_tab_index = 1
         self.root = root
         self.root.title("Natatnik")
         self.root.geometry("1000x700")  # Increased window size
@@ -57,7 +61,6 @@ class TextEditor:
         # Dictionary to keep track of open files
         self.tabs = {}
         self.current_file = None
-        self.untitled_counter = 1
 
         # Create menu
         self.create_menu()
@@ -65,12 +68,17 @@ class TextEditor:
         # Setup autosave
         self.setup_autosave()
 
+        # Create + tab
+        self.create_fixed_tab()
+
         # Load previously opened tabs
         self.load_tabs()
 
         # If no tabs were loaded, create a new one
         if not self.tabs:
             self.create_new_tab()
+
+        self.count_display_lines()
 
     def configure_dark_theme(self):
         # Configure dark theme colors
@@ -82,10 +90,10 @@ class TextEditor:
 
         self.style.configure('TNotebook', background=bg_color)
         self.style.configure('TNotebook.Tab', background=bg_color, foreground=fg_color, padding=[20, 4], font=("Consolas", 28, "bold"))
-        self.style.map('TNotebook.Tab', background=[('selected', select_bg)], foreground=[('selected', fg_color)])
+        self.style.map('TNotebook.Tab', background=[('selected', "#454545")], foreground=[('selected', fg_color)])
 
         self.style.configure('TFrame', background=bg_color)
-        self.style.configure('TButton', background=bg_color, foreground=fg_color)
+        self.style.configure('TButton', background=bg_color, foreground=fg_color, font=("Arial", 15))
         self.style.configure('TLabel', background=bg_color, foreground=fg_color)
 
         # Text widget colors will be set when creating each tab
@@ -95,8 +103,8 @@ class TextEditor:
         self.root.config(menu=menubar)
 
         # File menu
-        file_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#000000", activeforeground="#e0e0e0", font=("Arial", 20))
-        menubar.add_cascade(label="Файл", menu=file_menu, font=("Arial", 20))
+        file_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#000000", activeforeground="#e0e0e0", font=LABEL_FONT)
+        menubar.add_cascade(label="Файл", menu=file_menu, font=LABEL_FONT)
         file_menu.add_command(label="Новы", command=self.create_new_tab)
         file_menu.add_command(label="Адкрыць", command=self.open_file)
         file_menu.add_command(label="Захаваць", command=self.save_file)
@@ -105,8 +113,8 @@ class TextEditor:
         file_menu.add_command(label="Выхад", command=self.root.quit)
 
         # Edit menu
-        edit_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#4a4a4a", activeforeground="#e0e0e0", font=("Arial", 20))
-        menubar.add_cascade(label="Праўка", menu=edit_menu, font=("Arial", 20))
+        edit_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#4a4a4a", activeforeground="#e0e0e0", font=LABEL_FONT)
+        menubar.add_cascade(label="Праўка", menu=edit_menu, font=LABEL_FONT)
         edit_menu.add_command(label="Выразаць", command=self.cut)
         edit_menu.add_command(label="Капіраваць", command=self.copy)
         edit_menu.add_command(label="Уставіць", command=self.paste)
@@ -120,7 +128,7 @@ class TextEditor:
         font_size_label = ttk.Label(font_control_frame, text="Шрыфт:", font=("Arial", 15))
         font_size_label.pack(side="left", padx=5)
 
-        # Create a slider for font size (from 10 to 80)
+        # Create a slider for font size
         self.font_size_var = tk.IntVar(value=self.default_font_size)
         font_size_slider = ttk.Scale(font_control_frame, from_=10, to=80,
                                      orient="horizontal", length=200,
@@ -128,24 +136,37 @@ class TextEditor:
         font_size_slider.pack(side="left", padx=5)
 
         # Display current font size value
-        self.font_size_display = ttk.Label(font_control_frame, text=str(self.font_size_var.get()), font=("Arial", 20))
+        self.font_size_display = ttk.Label(font_control_frame, text=str(self.font_size_var.get()), font=LABEL_FONT)
         self.font_size_display.pack(side="left", padx=5)
 
-    def create_new_tab(self, filename=None, content=None):
-        # Create a frame for the tab
-        tab_frame = ttk.Frame(self.notebook)
+    def create_fixed_tab(self):
+        fixed_frame = ttk.Frame(self.notebook)
+        self.notebook.add(fixed_frame, text="+")  # Fixed tab as "+" or "Add"
+        self.fixed_tab_index = self.notebook.index("end") - 1  # Always last
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
-        # Create formatting toolbar first
-        toolbar = ttk.Frame(tab_frame)
+    def on_tab_changed(self, event):
+        selected_index = self.notebook.index("current")
+        if selected_index == self.fixed_tab_index:
+            self.create_new_tab()
+            if self.tabs:
+                self.notebook.select(len(self.tabs) - 1)
+
+    def create_new_tab(self, filename=None, content=None):
+        content_frame = ttk.Frame(self.notebook)
+        toolbar = ttk.Frame(content_frame)
         toolbar.pack(side="top", fill="x")
 
-        # Create text widget with scrollbar
-        text_frame = ttk.Frame(tab_frame)
-        text_frame.pack(fill="both", expand=True)
+        # Add close button
+        tab_id = len(self.tabs)  # Get tab ID before adding to notebook
+        close_button = ttk.Button(toolbar, text="Закрыць", command=lambda: self.close_tab(tab_id))
+        close_button.pack(side="right")
 
+        # Rest of the method...
+        text_frame = ttk.Frame(content_frame)
+        text_frame.pack(fill="both", expand=True)
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side="right", fill="y")
-
         text_widget = tk.Text(text_frame, yscrollcommand=scrollbar.set, wrap="char",
                               bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
                               selectbackground="#4a4a4a", selectforeground="#FFFFFF",
@@ -154,7 +175,6 @@ class TextEditor:
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
 
-        # Generate tab name
         if filename:
             tab_name = os.path.basename(filename)[:-4]
         else:
@@ -162,30 +182,25 @@ class TextEditor:
             filename = os.path.join(self.autosave_dir, f"{tab_name}.txt")
             self.untitled_counter += 1
 
-        # Add tab to notebook
-        self.notebook.add(tab_frame, text=tab_name)
-
-        # Store tab information
+        # Insert tab just before the fixed "+" tab
+        self.notebook.insert(self.fixed_tab_index, content_frame, text=tab_name)
         tab_info = {
             "text_widget": text_widget,
             "filename": filename,
-            "frame": tab_frame,
+            "frame": content_frame,
             "autosave_filename": filename if not os.path.exists(filename) else None
         }
-
-        tab_id = len(self.tabs)
         self.tabs[tab_id] = tab_info
-
-        # Insert content if provided
         if content:
             text_widget.delete(1.0, tk.END)
             text_widget.insert(tk.END, content)
-            # self.count_display_lines(text_widget)
 
-        # Select the new tab
-        self.notebook.select(len(self.tabs) - 1)
+        self.notebook.select(tab_id)
         self.current_file = tab_id
+        self.count_display_lines()
 
+        # Update fixed tab index since tab list changed
+        self.fixed_tab_index = self.notebook.index("end") - 1
         return tab_id
 
     def get_current_text_widget(self):
@@ -193,25 +208,20 @@ class TextEditor:
             return self.tabs[self.current_file]["text_widget"]
         return None
 
-    def count_display_lines(self, text_widget: tk.Text):
+    def count_display_lines(self):
+        tab_id = self.notebook.index(self.notebook.select())
+        text_widget = self.tabs[tab_id]["text_widget"]
         # Update layout
         text_widget.update_idletasks()
 
-        # Get the font
         text_font = tkfont.Font(font=text_widget['font'])
-
-        # Get the widget width in pixels
         widget_width_px = text_widget.winfo_width()
-
         # Get average character width (approximation using space character)
         avg_char_width = text_font.measure("n")  # You can use " " or "n" as a good estimate
-
         # Characters per line that can fit in widget
         chars_per_line = max(widget_width_px // avg_char_width, 1)
-
         # Get all text content
         full_text = text_widget.get("1.0", "end-1c")  # remove trailing newline
-
         # Split into logical lines
         logical_lines = full_text.split("\n")
 
@@ -221,14 +231,13 @@ class TextEditor:
             wrapped = textwrap.wrap(line, width=chars_per_line) or [""]
             total_visual_lines += len(wrapped)
 
+        lines_text = f"Радкоў: {total_visual_lines}"
+        self.status_label.config(text=lines_text)
+
         return total_visual_lines
 
     def on_text_change(self, event=None):
-        tab_id = self.notebook.index(self.notebook.select())
-        text_widget = self.tabs[tab_id]["text_widget"]
-        lines = self.count_display_lines(text_widget)
-        lines_text = f"Радкоў: {lines}"
-        self.status_label.config(text=lines_text)
+        self.count_display_lines()
 
     def open_file(self):
         filename = filedialog.askopenfilename(
@@ -313,6 +322,7 @@ class TextEditor:
             if text_widget.tag_ranges(tk.SEL):
                 self.copy()
                 text_widget.delete(tk.SEL_FIRST, tk.SEL_LAST)
+                self.count_display_lines()
 
     def copy(self):
         text_widget = self.get_current_text_widget()
@@ -331,6 +341,7 @@ class TextEditor:
                 if text_widget.tag_ranges(tk.SEL):
                     text_widget.delete(tk.SEL_FIRST, tk.SEL_LAST)
                 text_widget.insert(tk.INSERT, clipboard_data)
+                self.count_display_lines()
             except tk.TclError:
                 # Clipboard is empty or unavailable; ignore
                 pass
@@ -342,6 +353,7 @@ class TextEditor:
                 with open(self.settings_file, 'r') as f:
                     settings = json.load(f)
                     self.default_font_size = settings.get('font_size', self.default_font_size)
+                    self.untitled_counter = settings.get('untitled_counter', 1)
         except Exception as e:
             print(f"Error loading settings: {e}")
 
@@ -349,7 +361,8 @@ class TextEditor:
         # Save settings to file
         try:
             settings = {
-                'font_size': self.default_font_size
+                'font_size': self.default_font_size,
+                'untitled_counter': self.untitled_counter
             }
             with open(self.settings_file, 'w') as f:
                 json.dump(settings, f)
@@ -361,6 +374,11 @@ class TextEditor:
         # Set up autosave to run every 30 seconds
         self.autosave()
         self.root.after(30000, self.setup_autosave)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        self.autosave()
+        self.root.destroy()
 
     def autosave(self):
         # Save all tabs
@@ -394,7 +412,7 @@ class TextEditor:
             for filename in autosave_files:
                 if filename.startswith('Новы'):
                     try:
-                        num = int(filename[8:-4])  # Extract number from "Untitled{num}.txt"
+                        num = int(filename[4:-4])  # Extract number from "Untitled{num}.txt"
                         highest_num = max(highest_num, num)
                     except ValueError:
                         pass
@@ -419,6 +437,7 @@ class TextEditor:
             self.default_font_size = new_size
             self.font_size_display.config(text=str(new_size))
             self.update_font_sizes()
+            self.count_display_lines()
             self.save_settings()
         except ValueError:
             pass
@@ -444,12 +463,13 @@ class TextEditor:
             if tab_id is not None:
                 # Close the tab
                 self.close_tab(tab_id)
-            else:
-                # Click was in empty space or invalid area, create a new tab
-                self.create_new_tab()
-        except (ValueError, tk.TclError):
+            # else:
+            #     # Click was in empty space or invalid area, create a new tab
+            #     self.create_new_tab()
+        except (ValueError, tk.TclError ) as err:
+            print(err)
             # If index() raises an error (empty string or invalid format), create a new tab
-            self.create_new_tab()
+            # self.create_new_tab()
 
     def close_tab(self, tab_id):
         # Check if there are unsaved changes
@@ -461,7 +481,8 @@ class TextEditor:
             if response is None:
                 return False
             elif response:
-                self.save_file_as()
+                if not self.save_file_as():
+                    return False
             else:
                 try:
                     os.remove(filename)
@@ -480,14 +501,12 @@ class TextEditor:
         # If there are no more tabs, create a new one
         if not self.tabs:
             self.create_new_tab()
-            return False
+        else:
+            tid = len(self.tabs) - 1
+            self.notebook.select(tid)
+            self.current_file = tid
 
-        # Update current_file to the selected tab
-        selected_tab_index = self.notebook.index(self.notebook.select())
-        for tid, tab_info in self.tabs.items():
-            if self.notebook.index(tab_info["frame"]) == selected_tab_index:
-                self.current_file = tid
-                break
+        self.fixed_tab_index = self.notebook.index("end") - 1  # Always last
         return True
 
 
