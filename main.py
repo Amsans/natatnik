@@ -11,7 +11,7 @@ class TextEditor:
     def __init__(self, root: tk.Tk):
         self.font_size_display = None
         self.font_size_var = None
-        self.untitled_counter = None
+        self.untitled_counter = 0
         self.fixed_tab_index = 1
         self.selected_tab_index = None  # Track the selected tab index
         self.root = root
