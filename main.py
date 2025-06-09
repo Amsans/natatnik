@@ -182,10 +182,10 @@ class TextEditor:
         text_frame.pack(fill="both", expand=True)
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side="right", fill="y")
-        text_widget = tk.Text(text_frame, yscrollcommand=scrollbar.set, wrap="char",
+        text_widget = tk.Text(text_frame, yscrollcommand=scrollbar.set, wrap="word",
                               bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
                               selectbackground="#4a4a4a", selectforeground="#FFFFFF",
-                              font=("Consolas", self.default_font_size, "bold"))
+                              font=("Times New Roman", self.default_font_size, "bold"))
         text_widget.pack(side="left", fill="both", expand=True)
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
@@ -509,7 +509,7 @@ class TextEditor:
         # Update font sizes for all text widgets
         for tab_id, tab_info in self.tabs.items():
             text_widget = tab_info["text_widget"]
-            text_widget.configure(font=("Consolas", self.default_font_size, "bold"))
+            text_widget.configure(font=("Times New Roman", self.default_font_size, "bold"))
 
     def on_notebook_double_click(self, event):
         # Get the tab that was clicked
