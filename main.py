@@ -131,6 +131,9 @@ class TextEditor:
         # Edit menu
         edit_menu = tk.Menu(menubar, tearoff=0, bg=BG_COLOR, fg=FG_ACTIVE, activebackground=BG_ACTIVE, activeforeground=FG_ACTIVE, font=LABEL_FONT)
         menubar.add_cascade(label="Праўка", menu=edit_menu, font=LABEL_FONT)
+        edit_menu.add_command(label="Адмяніць", command=self.undo)
+        edit_menu.add_command(label="Паўтарыць", command=self.redo)
+        edit_menu.add_separator()
         edit_menu.add_command(label="Выразаць", command=self.cut)
         edit_menu.add_command(label="Капіраваць", command=self.copy)
         edit_menu.add_command(label="Уставіць", command=self.paste)
@@ -190,6 +193,14 @@ class TextEditor:
         # Add file path label
         file_path_label = ttk.Label(toolbar, text=filename or "", font=("Arial", 12))
         file_path_label.pack(side="left", padx=5)
+
+        # Add Undo and Redo buttons
+        undo_button = tk.Button(toolbar, text="↶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
+                                font=LABEL_FONT, command=self.undo, padx=5)
+        undo_button.pack(side="left", padx=0)
+        redo_button = tk.Button(toolbar, text="↷", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
+                                font=LABEL_FONT, command=self.redo)
+        redo_button.pack(side="left", padx=0)
 
         spec_chars_button = tk.Button(toolbar, text="·¶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
                                       font=LABEL_FONT, command=self.toggle_spec_chars)
@@ -379,6 +390,26 @@ class TextEditor:
                 self.count_display_lines()
             except tk.TclError:
                 # Clipboard is empty or unavailable; ignore
+                pass
+
+    def undo(self):
+        text_widget = self.get_current_text_widget()
+        if text_widget:
+            try:
+                text_widget.undo()
+                self.count_display_lines()
+            except tk.TclError:
+                # No more undo actions available; ignore
+                pass
+
+    def redo(self):
+        text_widget = self.get_current_text_widget()
+        if text_widget:
+            try:
+                text_widget.redo()
+                self.count_display_lines()
+            except tk.TclError:
+                # No more redo actions available; ignore
                 pass
 
     def load_settings(self):
