@@ -2,21 +2,22 @@ import json
 import os
 import textwrap
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, font as tkfont
+from tkinter import ttk, filedialog, messagebox, font as tkfont, PhotoImage
 
 from special_text import SpecialCharText
 
 LABEL_FONT = ("Arial", 20)
+ICON_FONT = ("Arial", 12)
 
 BG_COLOR = "#000000"
 FG_COLOR = "#FFFFFF"
 FG_ACTIVE = "#e0e0e0"
 BG_ACTIVE = "#4a4a4a"
-SELECT_BG = "#485456"
+SELECT_BG = "#484848"
 
 SLIDER_TROUGH_COLOR = "#2a2a2a"
 SLIDER_HANDLE_COLOR = "#e0e0e0"
-SLIDER_ACTIVE_COLOR = "#ffffff"
+SLIDER_ACTIVE_COLOR = "#70BFFF"
 
 
 class TextEditor:
@@ -57,11 +58,19 @@ class TextEditor:
         # Create font size control frame above tabs
         self.create_font_size_control()
 
+        # Dictionary to keep track of open files
+        self.tabs = {}
+        self.current_file = None
+
         status_bar = ttk.Frame(self.main_frame)
         status_bar.pack(side="bottom", fill="both", padx=5, pady=5)
 
         self.status_label = ttk.Label(status_bar, text="Радкоў: 0", font=("Arial", 18))
         self.status_label.pack(side="left", fill="x", padx=5, pady=5, expand=1)
+
+        # Add file path label
+        self.file_path_label = ttk.Label(status_bar, text="", font=("Arial", 12))
+        self.file_path_label.pack(side="left", padx=5)
 
         # Create notebook for tabs
         self.notebook = ttk.Notebook(self.main_frame)
@@ -69,10 +78,6 @@ class TextEditor:
 
         # Add bindings for tab management
         self.notebook.bind("<Double-Button-1>", self.on_notebook_double_click)
-
-        # Dictionary to keep track of open files
-        self.tabs = {}
-        self.current_file = None
 
         # Create menu
         self.create_menu()
@@ -104,11 +109,12 @@ class TextEditor:
     def configure_dark_theme(self):
         self.root.configure(bg=BG_COLOR)
         self.style.configure('TNotebook', background=BG_COLOR)
-        self.style.configure('TNotebook.Tab', background=BG_COLOR, foreground=FG_COLOR, padding=[10, 2], font=("Consolas", 28, "bold"))
-        self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', FG_COLOR)])
+        self.style.configure('TNotebook.Tab', background=BG_COLOR, foreground=FG_COLOR, padding=[10, 2], font=("Consolas", 20, "bold"))
+        self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', "#70BFFF")])
         self.style.configure('TFrame', background=BG_COLOR)
         self.style.configure('TButton', background=BG_COLOR, foreground=FG_COLOR, font=("Arial", 15))
         self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
+        self.style.configure('Fg.TFrame', background=SELECT_BG, foreground=BG_COLOR)
         # Configure TScale for the slider
         self.style.configure('Horizontal.TScale', background=BG_COLOR, troughcolor=SLIDER_TROUGH_COLOR, bordercolor=BG_COLOR)
         self.style.map('Horizontal.TScale', background=[('active', SLIDER_ACTIVE_COLOR), ('!disabled', SLIDER_HANDLE_COLOR)],
@@ -140,23 +146,66 @@ class TextEditor:
 
     def create_font_size_control(self):
         # Create a frame for font size control
-        font_control_frame = ttk.Frame(self.main_frame)
-        font_control_frame.pack(side="top", fill="x", padx=5, pady=5)
+        toolbar = ttk.Frame(self.main_frame)
+        toolbar.pack(side="top", fill="x", padx=5, pady=5)
 
         # Label for the slider
-        font_size_label = ttk.Label(font_control_frame, text="Шрыфт:", font=("Arial", 15))
+        font_size_label = ttk.Label(toolbar, text="Шрыфт:", font=("Arial", 15))
         font_size_label.pack(side="left", padx=5)
 
         # Create a slider for font size
         self.font_size_var = tk.IntVar(value=self.default_font_size)
-        font_size_slider = ttk.Scale(font_control_frame, from_=10, to=80,
+        font_size_slider = ttk.Scale(toolbar, from_=10, to=80,
                                      orient="horizontal", length=200,
                                      variable=self.font_size_var, command=self.on_font_size_change)
         font_size_slider.pack(side="left", padx=5)
 
         # Display current font size value
-        self.font_size_display = ttk.Label(font_control_frame, text=str(self.font_size_var.get()), font=LABEL_FONT)
+        self.font_size_display = ttk.Label(toolbar, text=str(self.font_size_var.get()), font=LABEL_FONT)
         self.font_size_display.pack(side="left", padx=5)
+
+        # Undo/Redo button group
+        undo_redo_frame = ttk.Frame(toolbar)
+        undo_redo_frame.pack(side="left", padx=(40, 10))  # Padding to separate from next group
+        undo_image = PhotoImage(file="undo.png")
+        undo_button = tk.Button(undo_redo_frame, text="Адмяніць", image=undo_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                                activeforeground=BG_COLOR, font=ICON_FONT, command=self.undo)
+        undo_button.image = undo_image
+        undo_button.pack(side="left", padx=0)
+
+        redo_image = PhotoImage(file="redo.png")
+        redo_button = tk.Button(undo_redo_frame, text="Паўтарыць", image=redo_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                                activeforeground=BG_COLOR, font=ICON_FONT, command=self.redo)
+        redo_button.image = redo_image
+        redo_button.pack(side="left", padx=0)
+
+        # Cut/Copy/Paste button group
+        clipboard_frame = ttk.Frame(toolbar)
+        clipboard_frame.pack(side="left", padx=(0, 10))
+
+        cut_image = PhotoImage(file="cut.png")
+        cut_button = tk.Button(clipboard_frame, text="Выразаць", image=cut_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                               activeforeground=BG_COLOR, font=ICON_FONT, command=self.cut)
+        cut_button.image = cut_image
+        cut_button.pack(side="left", padx=0)
+
+        copy_image = PhotoImage(file="copy.png")
+        copy_button = tk.Button(clipboard_frame, text="Капіраваць", image=copy_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                                activeforeground=BG_COLOR, font=ICON_FONT, command=self.copy)
+        copy_button.image = copy_image
+        copy_button.pack(side="left", padx=0)
+
+        paste_image = PhotoImage(file="paste.png")
+        paste_button = tk.Button(clipboard_frame, text="Уставіць", image=paste_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                                 activeforeground=BG_COLOR, font=ICON_FONT, command=self.paste)
+        paste_button.image = paste_image
+        paste_button.pack(side="left", padx=0)
+
+        spec_chars_image = PhotoImage(file="paragraph.png")
+        spec_chars_button = tk.Button(toolbar, text="Спец. знакі", image=spec_chars_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
+                                      activeforeground=BG_COLOR, font=ICON_FONT, command=self.toggle_spec_chars)
+        spec_chars_button.image = spec_chars_image
+        spec_chars_button.pack(side="left", padx=(0, 10))
 
     def create_fixed_tab(self):
         fixed_frame = ttk.Frame(self.notebook)
@@ -190,21 +239,6 @@ class TextEditor:
         toolbar = ttk.Frame(content_frame)
         toolbar.pack(side="top", fill="x")
 
-        # Add file path label
-        file_path_label = ttk.Label(toolbar, text=filename or "", font=("Arial", 12))
-        file_path_label.pack(side="left", padx=5)
-
-        # Add Undo and Redo buttons
-        undo_button = tk.Button(toolbar, text="↶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
-                                font=LABEL_FONT, command=self.undo, padx=5)
-        undo_button.pack(side="left", padx=0)
-        redo_button = tk.Button(toolbar, text="↷", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
-                                font=LABEL_FONT, command=self.redo)
-        redo_button.pack(side="left", padx=0)
-
-        spec_chars_button = tk.Button(toolbar, text="·¶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
-                                      font=LABEL_FONT, command=self.toggle_spec_chars)
-        spec_chars_button.pack(side="left", padx=5)
         tab_id = len(self.tabs)
         close_button = ttk.Button(toolbar, text="Закрыць", command=lambda: self.close_tab(tab_id))
         close_button.pack(side="right", padx=3)
@@ -232,7 +266,7 @@ class TextEditor:
             "filename": filename,
             "frame": content_frame,
             "autosave_filename": filename if not os.path.exists(filename) else None,
-            "file_path_label": file_path_label
+            "file_path_label": self.file_path_label
         }
         self.tabs[tab_id] = tab_info
         if content:
@@ -244,7 +278,7 @@ class TextEditor:
         self.notebook.select(tab_id)
         self.current_file = tab_id
         # Update file path label for the new tab
-        file_path_label.config(text=filename)
+        self.file_path_label.config(text=filename)
         self.count_display_lines()
 
         # Update fixed tab index since tab list changed
