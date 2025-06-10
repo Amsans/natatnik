@@ -14,6 +14,10 @@ FG_ACTIVE = "#e0e0e0"
 BG_ACTIVE = "#4a4a4a"
 SELECT_BG = "#485456"
 
+SLIDER_TROUGH_COLOR = "#2a2a2a"
+SLIDER_HANDLE_COLOR = "#e0e0e0"
+SLIDER_ACTIVE_COLOR = "#ffffff"
+
 
 class TextEditor:
     def __init__(self, root: tk.Tk):
@@ -105,6 +109,10 @@ class TextEditor:
         self.style.configure('TFrame', background=BG_COLOR)
         self.style.configure('TButton', background=BG_COLOR, foreground=FG_COLOR, font=("Arial", 15))
         self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
+        # Configure TScale for the slider
+        self.style.configure('Horizontal.TScale', background=BG_COLOR, troughcolor=SLIDER_TROUGH_COLOR, bordercolor=BG_COLOR)
+        self.style.map('Horizontal.TScale', background=[('active', SLIDER_ACTIVE_COLOR), ('!disabled', SLIDER_HANDLE_COLOR)],
+                       troughcolor=[('active', SLIDER_TROUGH_COLOR)])
 
     def create_menu(self):
         menubar = tk.Menu(self.root, bg=BG_COLOR, fg=FG_ACTIVE, activebackground=BG_COLOR, activeforeground=FG_ACTIVE)
