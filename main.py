@@ -18,21 +18,19 @@ SELECT_BG = "#485456"
 class TextEditor:
     def __init__(self, root: tk.Tk):
         self.open_tabs = None
+        self.cursor_positions = None  # Store cursor positions for tabs
         self.font_size_display = None
         self.font_size_var = None
         self.untitled_counter = 0
         self.fixed_tab_index = 1
         self.show_special = False
-        self.selected_tab_index = None  # Track the selected tab index
+        self.selected_tab_index = None
         self.root = root
         self.root.title("Natatnik")
-        self.root.geometry("1000x700")  # Increased window size
+        self.root.geometry("1000x700")
         self.root.iconbitmap("icon.ico")
 
-        # Default font size
         self.default_font_size = 28
-
-        # Settings directory and file
         self.settings_dir = os.path.join(os.path.expanduser("~"), ".natatnik")
         self.settings_file = os.path.join(self.settings_dir, "settings.json")
         self.autosave_dir = os.path.join(self.settings_dir, "autosave")
@@ -41,7 +39,6 @@ class TextEditor:
         os.makedirs(self.settings_dir, exist_ok=True)
         os.makedirs(self.autosave_dir, exist_ok=True)
 
-        # Load settings
         self.load_settings()
 
         # Set dark theme
@@ -78,8 +75,6 @@ class TextEditor:
 
         # Setup autosave
         self.setup_autosave()
-
-        # Create + tab
         self.create_fixed_tab()
 
         # Load previously opened tabs
@@ -89,16 +84,24 @@ class TextEditor:
         if not self.tabs:
             self.create_new_tab()
 
-        self.notebook.select(self.selected_tab_index)
+        self.select_tab_and_set_cursor()
+
         self.count_display_lines()
+
+    def select_tab_and_set_cursor(self):
+        self.notebook.select(self.selected_tab_index)
+        filename = self.tabs[self.selected_tab_index]["filename"]
+        cursor_pos = self.cursor_positions.get(filename, "1.0")
+        text_widget = self.get_current_text_widget()
+        text_widget.focus_set()
+        text_widget.mark_set(tk.INSERT, cursor_pos)
+        text_widget.see(cursor_pos)
 
     def configure_dark_theme(self):
         self.root.configure(bg=BG_COLOR)
-
         self.style.configure('TNotebook', background=BG_COLOR)
         self.style.configure('TNotebook.Tab', background=BG_COLOR, foreground=FG_COLOR, padding=[10, 2], font=("Consolas", 28, "bold"))
         self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', FG_COLOR)])
-
         self.style.configure('TFrame', background=BG_COLOR)
         self.style.configure('TButton', background=BG_COLOR, foreground=FG_COLOR, font=("Arial", 15))
         self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
@@ -146,8 +149,8 @@ class TextEditor:
 
     def create_fixed_tab(self):
         fixed_frame = ttk.Frame(self.notebook)
-        self.notebook.add(fixed_frame, text="+")  # Fixed tab as "+" or "Add"
-        self.fixed_tab_index = self.notebook.index("end") - 1  # Always last
+        self.notebook.add(fixed_frame, text="+")
+        self.fixed_tab_index = self.notebook.index("end") - 1
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
 
     def on_tab_changed(self, event: tk.Event):
@@ -167,9 +170,11 @@ class TextEditor:
                 self.current_file = tab_id
                 file_path = self.tabs[tab_id]["filename"]
                 self.tabs[tab_id]["file_path_label"].config(text=file_path)
+                self.selected_tab_index = tab_id
+                self.select_tab_and_set_cursor()
             self.count_display_lines()
 
-    def create_new_tab(self, filename=None, content=None):
+    def create_new_tab(self, filename=None, content=None, cursor_pos=None):
         content_frame = ttk.Frame(self.notebook)
         toolbar = ttk.Frame(content_frame)
         toolbar.pack(side="top", fill="x")
@@ -181,9 +186,7 @@ class TextEditor:
         spec_chars_button = tk.Button(toolbar, text="·¶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
                                       font=LABEL_FONT, command=self.toggle_spec_chars)
         spec_chars_button.pack(side="left", padx=5)
-
-        # Add close button
-        tab_id = len(self.tabs)  # Get tab ID before adding to notebook
+        tab_id = len(self.tabs)
         close_button = ttk.Button(toolbar, text="Закрыць", command=lambda: self.close_tab(tab_id))
         close_button.pack(side="right", padx=3)
 
@@ -198,28 +201,27 @@ class TextEditor:
         text_widget.pack(side="left", fill="both", expand=True)
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
-
         if filename:
             tab_name = os.path.basename(filename)[:-4]
         else:
             tab_name = f"Новы{self.untitled_counter}"
             filename = os.path.join(self.autosave_dir, f"{tab_name}.txt")
             self.untitled_counter += 1
-
-        # Insert tab just before the fixed "+" tab
         self.notebook.insert(self.fixed_tab_index, content_frame, text=tab_name)
         tab_info = {
             "text_widget": text_widget,
             "filename": filename,
             "frame": content_frame,
             "autosave_filename": filename if not os.path.exists(filename) else None,
-            "file_path_label": file_path_label  # Store reference to the label
+            "file_path_label": file_path_label
         }
         self.tabs[tab_id] = tab_info
         if content:
             text_widget.delete(1.0, tk.END)
             text_widget.insert(tk.END, content)
-
+        if cursor_pos:
+            text_widget.focus_set()
+            text_widget.mark_set(tk.INSERT, cursor_pos)
         self.notebook.select(tab_id)
         self.current_file = tab_id
         # Update file path label for the new tab
@@ -228,7 +230,7 @@ class TextEditor:
 
         # Update fixed tab index since tab list changed
         self.fixed_tab_index = self.notebook.index("end") - 1
-        self.save_settings()  # Save settings with new tab and selected index
+        self.save_settings()
         return tab_id
 
     def toggle_spec_chars(self):
@@ -244,12 +246,11 @@ class TextEditor:
     def count_display_lines(self):
         tab_id = self.notebook.index(self.notebook.select())
         text_widget = self.tabs[tab_id]["text_widget"]
-        # Update layout
         text_widget.update_idletasks()
 
         text_font = tkfont.Font(font=text_widget['font'])
         widget_width_px = text_widget.winfo_width()
-        avg_char_width = text_font.measure("n")  # Use "n" as a good estimate
+        avg_char_width = text_font.measure("n")
         chars_per_line = max(widget_width_px // avg_char_width, 1)
         full_text = text_widget.get("1.0", "end-1c")
         # Split into logical lines
@@ -280,14 +281,13 @@ class TextEditor:
                     self.notebook.select(tab_id)
                     self.current_file = tab_id
                     tab_info["file_path_label"].config(text=filename)
-                    self.save_settings()  # Save settings with updated selected tab index
+                    self.save_settings()
                     return
 
             # Create new tab with file content
             try:
                 with open(filename, "r", encoding="utf-8") as file:
                     content = file.read()
-
                 tab_id = self.create_new_tab(filename)
                 text_widget = self.tabs[tab_id]["text_widget"]
                 text_widget.delete(1.0, tk.END)
@@ -318,27 +318,22 @@ class TextEditor:
     def save_file_as(self):
         if self.current_file is None:
             return None
-
         filename = filedialog.asksaveasfilename(
             defaultextension=".txt",
             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
         )
-
         if not filename:
             return False
-
         tab_info = self.tabs[self.current_file]
 
         # Check if this was an autosaved file
         old_filename = tab_info["filename"]
         if old_filename and os.path.dirname(old_filename) == self.autosave_dir:
-            # This was an autosaved file, try to remove it
             try:
                 os.remove(old_filename)
             except OSError as e:
                 print(e)
                 pass
-
         tab_info["filename"] = filename
         tab_info["autosave_filename"] = None  # No longer an autosave file
 
@@ -346,7 +341,6 @@ class TextEditor:
         tab_index = self.notebook.index(self.notebook.select())
         self.notebook.tab(tab_index, text=os.path.basename(filename))
         tab_info["file_path_label"].config(text=filename)
-
         return self.save_file()
 
     def cut(self):
@@ -387,12 +381,14 @@ class TextEditor:
                     settings = json.load(f)
                     self.default_font_size = settings.get('font_size', self.default_font_size)
                     self.untitled_counter = settings.get('untitled_counter', 1)
-                    self.open_tabs = settings.get('open_tabs', [])  # Load open tabs
-                    self.selected_tab_index = settings.get('selected_tab_index', None)  # Load selected tab index
+                    self.open_tabs = settings.get('open_tabs', [])
+                    self.cursor_positions = settings.get('cursor_positions', {})
+                    self.selected_tab_index = settings.get('selected_tab_index', None)
                     self.show_special = settings.get('show_special', False)
         except Exception as e:
             print(f"Error loading settings: {e}")
             self.open_tabs = []
+            self.cursor_positions = {}
             self.selected_tab_index = None
 
     def save_settings(self):
@@ -400,19 +396,22 @@ class TextEditor:
         try:
             # Get current open tabs in order
             open_tabs = []
-            for i in range(self.notebook.index("end") - 1):  # Exclude the fixed "+" tab
+            cursor_positions = {}
+            for i in range(self.notebook.index("end") - 1):
                 tab_id = None
                 for tid, tab_info in self.tabs.items():
                     if self.notebook.index(tab_info["frame"]) == i:
                         tab_id = tid
                         break
                 if tab_id is not None:
-                    open_tabs.append(self.tabs[tab_id]["filename"])
-
+                    filename = self.tabs[tab_id]["filename"]
+                    open_tabs.append(filename)
+                    cursor_positions[filename] = self.tabs[tab_id]["text_widget"].index(tk.INSERT)
             settings = {
                 'font_size': self.default_font_size,
                 'untitled_counter': self.untitled_counter,
                 'open_tabs': open_tabs,
+                'cursor_positions': cursor_positions,
                 'selected_tab_index': self.notebook.index("current"),
                 'show_special': self.show_special
             }
@@ -430,7 +429,7 @@ class TextEditor:
 
     def on_window_close(self):
         self.autosave()
-        self.save_settings()  # Save tab information and selected tab index on close
+        self.save_settings()
         self.root.destroy()
 
     def autosave(self):
@@ -455,19 +454,18 @@ class TextEditor:
     def load_tabs(self):
         # Load tabs from settings.json
         try:
-            tab_ids = {}  # Track tab IDs by filename
+            tab_ids = {}
             # Load open tabs from settings
             for filename in self.open_tabs:
                 if os.path.exists(filename):
                     try:
                         with open(filename, 'r', encoding="utf-8") as f:
                             content = f.read()
-                        tab_id = self.create_new_tab(filename, content)
+                        cursor_pos = self.cursor_positions.get(filename, "1.0")
+                        tab_id = self.create_new_tab(filename, content, cursor_pos)
                         tab_ids[filename] = tab_id
                     except Exception as e:
                         print(f"Error loading tab {filename}: {e}")
-
-            # Load autosave files not in open_tabs (for backward compatibility)
             autosave_files = [f for f in os.listdir(self.autosave_dir) if f.endswith('.txt')]
             for filename in autosave_files:
                 full_path = os.path.join(self.autosave_dir, filename)
@@ -475,7 +473,8 @@ class TextEditor:
                     try:
                         with open(full_path, 'r', encoding="utf-8") as f:
                             content = f.read()
-                        tab_id = self.create_new_tab(full_path, content)
+                        cursor_pos = self.cursor_positions.get(full_path, "1.0")
+                        tab_id = self.create_new_tab(full_path, content, cursor_pos)
                         tab_ids[full_path] = tab_id
                     except Exception as e:
                         print(f"Error loading tab {filename}: {e}")
@@ -507,7 +506,6 @@ class TextEditor:
                         self.tabs[tab_id]["file_path_label"].config(text=self.tabs[tab_id]["filename"])
                         self.count_display_lines()
                         self.get_current_text_widget().toggle_spec_chars(self.show_special)
-
         except Exception as e:
             print(f"Error loading tabs: {e}")
 
@@ -523,7 +521,6 @@ class TextEditor:
             pass
 
     def update_font_sizes(self):
-        # Update font sizes for all text widgets
         for tab_id, tab_info in self.tabs.items():
             text_widget = tab_info["text_widget"]
             text_widget.configure(font=("Times New Roman", self.default_font_size, "bold"))
@@ -539,7 +536,6 @@ class TextEditor:
                 if self.notebook.index(tab_info["frame"]) == clicked_tab_index:
                     tab_id = tid
                     break
-
             if tab_id is not None:
                 # Close the tab
                 self.close_tab(tab_id)
@@ -576,10 +572,9 @@ class TextEditor:
             tid = len(self.tabs) - 1
             self.notebook.select(tid)
             self.current_file = tid
-            self.selected_tab_index = self.notebook.index("current")  # Update selected tab index
-            self.save_settings()  # Save settings with updated selected tab index
-
-        self.fixed_tab_index = self.notebook.index("end") - 1  # Always last
+            self.selected_tab_index = self.notebook.index("current")
+            self.save_settings()
+        self.fixed_tab_index = self.notebook.index("end") - 1
         return True
 
 
