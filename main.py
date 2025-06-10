@@ -7,9 +7,11 @@ from tkinter import ttk, filedialog, messagebox, font as tkfont
 from special_text import SpecialCharText
 
 LABEL_FONT = ("Arial", 20)
-# Configure dark theme colors
+
 BG_COLOR = "#000000"
 FG_COLOR = "#FFFFFF"
+FG_ACTIVE = "#e0e0e0"
+BG_ACTIVE = "#4a4a4a"
 SELECT_BG = "#485456"
 
 
@@ -102,11 +104,11 @@ class TextEditor:
         self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
 
     def create_menu(self):
-        menubar = tk.Menu(self.root, bg="#000000", fg="#e0e0e0", activebackground="#000000", activeforeground="#e0e0e0")
+        menubar = tk.Menu(self.root, bg=BG_COLOR, fg=FG_ACTIVE, activebackground=BG_COLOR, activeforeground=FG_ACTIVE)
         self.root.config(menu=menubar)
 
         # File menu
-        file_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#4a4a4a", activeforeground="#e0e0e0", font=LABEL_FONT)
+        file_menu = tk.Menu(menubar, tearoff=0, bg=BG_COLOR, fg=FG_ACTIVE, activebackground=BG_ACTIVE, activeforeground=FG_ACTIVE, font=LABEL_FONT)
         menubar.add_cascade(label="Файл", menu=file_menu, font=LABEL_FONT)
         file_menu.add_command(label="Новы", command=self.create_new_tab)
         file_menu.add_command(label="Адкрыць", command=self.open_file)
@@ -116,7 +118,7 @@ class TextEditor:
         file_menu.add_command(label="Выхад", command=self.on_window_close)
 
         # Edit menu
-        edit_menu = tk.Menu(menubar, tearoff=0, bg="#000000", fg="#e0e0e0", activebackground="#4a4a4a", activeforeground="#e0e0e0", font=LABEL_FONT)
+        edit_menu = tk.Menu(menubar, tearoff=0, bg=BG_COLOR, fg=FG_ACTIVE, activebackground=BG_ACTIVE, activeforeground=FG_ACTIVE, font=LABEL_FONT)
         menubar.add_cascade(label="Праўка", menu=edit_menu, font=LABEL_FONT)
         edit_menu.add_command(label="Выразаць", command=self.cut)
         edit_menu.add_command(label="Капіраваць", command=self.copy)
@@ -190,9 +192,9 @@ class TextEditor:
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side="right", fill="y")
         text_widget = SpecialCharText(text_frame, yscrollcommand=scrollbar.set, wrap="word",
-                              bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
-                              selectbackground="#4a4a4a", selectforeground="#FFFFFF",
-                              font=("Times New Roman", self.default_font_size, "bold"), spec_chars=self.show_special)
+                                      bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
+                                      selectbackground="#4a4a4a", selectforeground="#FFFFFF",
+                                      font=("Times New Roman", self.default_font_size, "bold"), spec_chars=self.show_special)
         text_widget.pack(side="left", fill="both", expand=True)
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
@@ -233,8 +235,6 @@ class TextEditor:
         self.show_special = not self.show_special
         text_widget = self.get_current_text_widget()
         text_widget.toggle_spec_chars(self.show_special)
-
-
 
     def get_current_text_widget(self) -> SpecialCharText | None:
         if self.current_file is not None:
