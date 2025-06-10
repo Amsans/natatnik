@@ -37,7 +37,6 @@ class SpecialCharText(tk.Text):
             self.handle_special_char(event)
             return "break"  # Prevent default behavior
         elif event.keysym in ('BackSpace', 'Delete'):
-            # self.update_display(event)  # Update after deletion
             return None
         return None
 
@@ -49,18 +48,25 @@ class SpecialCharText(tk.Text):
         pos = self.index(tk.INSERT)
         char = '\n' if event.keysym == 'Return' else '\t' if event.keysym == 'Tab' else event.char
         if char in self.special_chars:
-            self.insert(pos, char)  # Insert the actual character
-            self.update_display(event)  # Update to show glyph
+            if self.show_special:
+                self.insert(pos, self.special_chars[char])  # Insert glyph
+                self.tag_add("special", pos)
+                self.display_chars[pos] = char  # Map glyph to original char
+            else:
+                self.insert(pos, char)  # Insert actual character
 
     def update_display(self, event=None):
-        """Replace special characters with their visible glyphs."""
+        """Update display to show special character glyphs if enabled."""
+        if not self.show_special:
+            return  # Skip update if special chars are not shown
+
         # Save cursor position and selection
         cursor_pos = self.index(tk.INSERT)
         sel = self.tag_ranges(tk.SEL)
         sel_start, sel_end = (self.index(sel[0]), self.index(sel[1])) if sel else (None, None)
 
         # Get all text
-        content = self.get("1.0", tk.END) [:-1]
+        content = self.get("1.0", tk.END)[:-1]  # Exclude trailing newline
         self.delete("1.0", tk.END)  # Clear text widget
         self.display_chars.clear()  # Clear mapping
 
@@ -71,9 +77,12 @@ class SpecialCharText(tk.Text):
             if char in self.special_chars:
                 self.insert(pos, self.special_chars[char])
                 self.tag_add("special", pos)
-                self.display_chars[pos] = char  # Map glyph position to original char
+                self.display_chars[pos] = char
             else:
                 self.insert(pos, char)
+            # Handle newline explicitly
+            if char == '\n' and i < len(content):
+                self.insert(pos, '\n')
 
         # Apply gray color to special characters
         self.tag_configure("special", foreground="gray", font=self.gray_font)
@@ -85,7 +94,6 @@ class SpecialCharText(tk.Text):
 
     def toggle_spec_chars(self, show):
         self.show_special = show
-
         content = self.get("1.0", tk.END)[:-1]
         if self.show_special:
             content = content.replace(' ', '·')
@@ -95,6 +103,5 @@ class SpecialCharText(tk.Text):
             content = content.replace('·', ' ')
             content = content.replace('→', '\t')
             content = content.replace('¶', '')
-
         self.delete("1.0", tk.END)
         self.insert("1.0", content)
