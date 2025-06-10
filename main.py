@@ -4,15 +4,23 @@ import textwrap
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, font as tkfont
 
+from special_text import SpecialCharText
+
 LABEL_FONT = ("Arial", 20)
+# Configure dark theme colors
+BG_COLOR = "#000000"
+FG_COLOR = "#FFFFFF"
+SELECT_BG = "#485456"
 
 
 class TextEditor:
     def __init__(self, root: tk.Tk):
+        self.open_tabs = None
         self.font_size_display = None
         self.font_size_var = None
         self.untitled_counter = 0
         self.fixed_tab_index = 1
+        self.show_special = False
         self.selected_tab_index = None  # Track the selected tab index
         self.root = root
         self.root.title("Natatnik")
@@ -83,20 +91,15 @@ class TextEditor:
         self.count_display_lines()
 
     def configure_dark_theme(self):
-        # Configure dark theme colors
-        bg_color = "#000000"
-        fg_color = "#FFFFFF"
-        select_bg = "#485456"
+        self.root.configure(bg=BG_COLOR)
 
-        self.root.configure(bg=bg_color)
+        self.style.configure('TNotebook', background=BG_COLOR)
+        self.style.configure('TNotebook.Tab', background=BG_COLOR, foreground=FG_COLOR, padding=[10, 2], font=("Consolas", 28, "bold"))
+        self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', FG_COLOR)])
 
-        self.style.configure('TNotebook', background=bg_color)
-        self.style.configure('TNotebook.Tab', background=bg_color, foreground=fg_color, padding=[10, 2], font=("Consolas", 28, "bold"))
-        self.style.map('TNotebook.Tab', background=[('selected', select_bg)], foreground=[('selected', fg_color)])
-
-        self.style.configure('TFrame', background=bg_color)
-        self.style.configure('TButton', background=bg_color, foreground=fg_color, font=("Arial", 15))
-        self.style.configure('TLabel', background=bg_color, foreground=fg_color)
+        self.style.configure('TFrame', background=BG_COLOR)
+        self.style.configure('TButton', background=BG_COLOR, foreground=FG_COLOR, font=("Arial", 15))
+        self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
 
     def create_menu(self):
         menubar = tk.Menu(self.root, bg="#000000", fg="#e0e0e0", activebackground="#000000", activeforeground="#e0e0e0")
@@ -173,19 +176,23 @@ class TextEditor:
         file_path_label = ttk.Label(toolbar, text=filename or "", font=("Arial", 12))
         file_path_label.pack(side="left", padx=5)
 
+        spec_chars_button = tk.Button(toolbar, text="·¶", width=3, bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR, activeforeground=BG_COLOR,
+                                      font=LABEL_FONT, command=self.toggle_spec_chars)
+        spec_chars_button.pack(side="left", padx=5)
+
         # Add close button
         tab_id = len(self.tabs)  # Get tab ID before adding to notebook
         close_button = ttk.Button(toolbar, text="Закрыць", command=lambda: self.close_tab(tab_id))
-        close_button.pack(side="right")
+        close_button.pack(side="right", padx=3)
 
         text_frame = ttk.Frame(content_frame)
         text_frame.pack(fill="both", expand=True)
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side="right", fill="y")
-        text_widget = tk.Text(text_frame, yscrollcommand=scrollbar.set, wrap="word",
+        text_widget = SpecialCharText(text_frame, yscrollcommand=scrollbar.set, wrap="word",
                               bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
                               selectbackground="#4a4a4a", selectforeground="#FFFFFF",
-                              font=("Times New Roman", self.default_font_size, "bold"))
+                              font=("Times New Roman", self.default_font_size, "bold"), spec_chars=self.show_special)
         text_widget.pack(side="left", fill="both", expand=True)
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
@@ -222,7 +229,14 @@ class TextEditor:
         self.save_settings()  # Save settings with new tab and selected index
         return tab_id
 
-    def get_current_text_widget(self):
+    def toggle_spec_chars(self):
+        self.show_special = not self.show_special
+        text_widget = self.get_current_text_widget()
+        text_widget.toggle_spec_chars(self.show_special)
+
+
+
+    def get_current_text_widget(self) -> SpecialCharText | None:
         if self.current_file is not None:
             return self.tabs[self.current_file]["text_widget"]
         return None
@@ -375,6 +389,7 @@ class TextEditor:
                     self.untitled_counter = settings.get('untitled_counter', 1)
                     self.open_tabs = settings.get('open_tabs', [])  # Load open tabs
                     self.selected_tab_index = settings.get('selected_tab_index', None)  # Load selected tab index
+                    self.show_special = settings.get('show_special', False)
         except Exception as e:
             print(f"Error loading settings: {e}")
             self.open_tabs = []
@@ -398,7 +413,8 @@ class TextEditor:
                 'font_size': self.default_font_size,
                 'untitled_counter': self.untitled_counter,
                 'open_tabs': open_tabs,
-                'selected_tab_index': self.notebook.index("current")
+                'selected_tab_index': self.notebook.index("current"),
+                'show_special': self.show_special
             }
             with open(self.settings_file, 'w', encoding="utf-8") as f:
                 json.dump(settings, f, indent=2)
@@ -490,6 +506,7 @@ class TextEditor:
                         self.current_file = tab_id
                         self.tabs[tab_id]["file_path_label"].config(text=self.tabs[tab_id]["filename"])
                         self.count_display_lines()
+                        self.get_current_text_widget().toggle_spec_chars(self.show_special)
 
         except Exception as e:
             print(f"Error loading tabs: {e}")
