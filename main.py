@@ -13,11 +13,11 @@ BG_COLOR = "#000000"
 FG_COLOR = "#FFFFFF"
 FG_ACTIVE = "#e0e0e0"
 BG_ACTIVE = "#4a4a4a"
-SELECT_BG = "#484848"
+SELECT_BG = "#25254C"
 
 SLIDER_TROUGH_COLOR = "#2a2a2a"
 SLIDER_HANDLE_COLOR = "#e0e0e0"
-SLIDER_ACTIVE_COLOR = "#70BFFF"
+SLIDER_ACTIVE_COLOR = "#25254C"
 
 
 class TextEditor:
@@ -110,7 +110,7 @@ class TextEditor:
         self.root.configure(bg=BG_COLOR)
         self.style.configure('TNotebook', background=BG_COLOR)
         self.style.configure('TNotebook.Tab', background=BG_COLOR, foreground=FG_COLOR, padding=[10, 2], font=("Consolas", 20, "bold"))
-        self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', "#70BFFF")])
+        self.style.map('TNotebook.Tab', background=[('selected', SELECT_BG)], foreground=[('selected', FG_COLOR)])
         self.style.configure('TFrame', background=BG_COLOR)
         self.style.configure('TButton', background=BG_COLOR, foreground=FG_COLOR, font=("Arial", 15))
         self.style.configure('TLabel', background=BG_COLOR, foreground=FG_COLOR)
