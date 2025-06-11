@@ -4,7 +4,7 @@ import textwrap
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, font as tkfont, PhotoImage
 
-from special_text import SpecialCharText
+from text_widget import TextWidget
 
 LABEL_FONT = ("Arial", 20)
 ICON_FONT = ("Arial", 12)
@@ -33,7 +33,7 @@ class TextEditor:
         self.root = root
         self.root.title("Natatnik")
         self.root.geometry("1000x700")
-        self.root.iconbitmap("icon.ico")
+        self.root.iconbitmap("img/icon.ico")
 
         self.default_font_size = 28
         self.settings_dir = os.path.join(os.path.expanduser("~"), ".natatnik")
@@ -167,13 +167,13 @@ class TextEditor:
         # Undo/Redo button group
         undo_redo_frame = ttk.Frame(toolbar)
         undo_redo_frame.pack(side="left", padx=(40, 10))  # Padding to separate from next group
-        undo_image = PhotoImage(file="undo.png")
+        undo_image = PhotoImage(file="img/undo.png")
         undo_button = tk.Button(undo_redo_frame, text="Адмяніць", image=undo_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                 activeforeground=BG_COLOR, font=ICON_FONT, command=self.undo)
         undo_button.image = undo_image
         undo_button.pack(side="left", padx=0)
 
-        redo_image = PhotoImage(file="redo.png")
+        redo_image = PhotoImage(file="img/redo.png")
         redo_button = tk.Button(undo_redo_frame, text="Паўтарыць", image=redo_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                 activeforeground=BG_COLOR, font=ICON_FONT, command=self.redo)
         redo_button.image = redo_image
@@ -183,25 +183,25 @@ class TextEditor:
         clipboard_frame = ttk.Frame(toolbar)
         clipboard_frame.pack(side="left", padx=(0, 10))
 
-        cut_image = PhotoImage(file="cut.png")
+        cut_image = PhotoImage(file="img/cut.png")
         cut_button = tk.Button(clipboard_frame, text="Выразаць", image=cut_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                activeforeground=BG_COLOR, font=ICON_FONT, command=self.cut)
         cut_button.image = cut_image
         cut_button.pack(side="left", padx=0)
 
-        copy_image = PhotoImage(file="copy.png")
+        copy_image = PhotoImage(file="img/copy.png")
         copy_button = tk.Button(clipboard_frame, text="Капіраваць", image=copy_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                 activeforeground=BG_COLOR, font=ICON_FONT, command=self.copy)
         copy_button.image = copy_image
         copy_button.pack(side="left", padx=0)
 
-        paste_image = PhotoImage(file="paste.png")
+        paste_image = PhotoImage(file="img/paste.png")
         paste_button = tk.Button(clipboard_frame, text="Уставіць", image=paste_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                  activeforeground=BG_COLOR, font=ICON_FONT, command=self.paste)
         paste_button.image = paste_image
         paste_button.pack(side="left", padx=0)
 
-        spec_chars_image = PhotoImage(file="paragraph.png")
+        spec_chars_image = PhotoImage(file="img/paragraph.png")
         spec_chars_button = tk.Button(toolbar, text="Спец. знакі", image=spec_chars_image, compound="top", bg=BG_COLOR, fg=FG_COLOR, activebackground=FG_COLOR,
                                       activeforeground=BG_COLOR, font=ICON_FONT, command=self.toggle_spec_chars)
         spec_chars_button.image = spec_chars_image
@@ -247,10 +247,10 @@ class TextEditor:
         text_frame.pack(fill="both", expand=True)
         scrollbar = ttk.Scrollbar(text_frame)
         scrollbar.pack(side="right", fill="y")
-        text_widget = SpecialCharText(text_frame, yscrollcommand=scrollbar.set, wrap="word",
-                                      bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
-                                      selectbackground="#4a4a4a", selectforeground="#FFFFFF",
-                                      font=("Times New Roman", self.default_font_size, "bold"), spec_chars=self.show_special)
+        text_widget = TextWidget(text_frame, yscrollcommand=scrollbar.set, wrap="word",
+                                 bg="#000000", fg="#FFFFFF", insertbackground="#e0e0e0",
+                                 selectbackground="#4a4a4a", selectforeground="#FFFFFF",
+                                 font=("Times New Roman", self.default_font_size, "bold"), spec_chars=self.show_special)
         text_widget.pack(side="left", fill="both", expand=True)
         text_widget.bind("<KeyRelease>", self.on_text_change)
         scrollbar.config(command=text_widget.yview)
@@ -291,7 +291,7 @@ class TextEditor:
         text_widget = self.get_current_text_widget()
         text_widget.toggle_spec_chars(self.show_special)
 
-    def get_current_text_widget(self) -> SpecialCharText | None:
+    def get_current_text_widget(self) -> TextWidget | None:
         if self.current_file is not None:
             return self.tabs[self.current_file]["text_widget"]
         return None

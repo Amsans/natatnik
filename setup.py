@@ -3,9 +3,12 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
+    "build_exe": "build/natatnik",
     "packages": ["os", "tkinter", "json", "textwrap"],
     "excludes": [],
-    "include_files": ["icon.ico"]
+    "include_files": [
+        ("img", "img")
+    ]
 }
 
 # GUI applications require a different base on Windows
@@ -18,5 +21,5 @@ setup(
     version="1.0",
     description="Lightweight text editor with basic formatting support",
     options={"build_exe": build_exe_options},
-    executables=[Executable("main.py", base=base, target_name="Natatnik.exe", icon="icon.ico")]
+    executables=[Executable("main.py", base=base, target_name="Natatnik.exe", icon="img/icon.ico")]
 )

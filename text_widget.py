@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import font
 
-class SpecialCharText(tk.Text):
+class TextWidget(tk.Text):
     def __init__(self, master, spec_chars=False, **kwargs):
         super().__init__(master, **kwargs)
         self.special_chars = {
