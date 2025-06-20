@@ -665,6 +665,7 @@ def _onKeyRelease(event):
 def main():
     root = tk.Tk()
     TextEditor(root)
+    root.state('zoomed')
     root.bind_all("<Key>", _onKeyRelease, "+")
     root.mainloop()
 
