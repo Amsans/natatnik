@@ -1,7 +1,7 @@
 import sys
 from cx_Freeze import setup, Executable
 
-# Dependencies are automatically detected, but it might need fine tuning.
+# Dependencies are automatically detected, but it might need fine-tuning.
 build_exe_options = {
     "build_exe": "build/natatnik",
     "packages": ["os", "tkinter", "json", "textwrap"],
